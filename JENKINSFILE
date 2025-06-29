@@ -6,7 +6,7 @@ pipeline {
         STACK_NAME = 'todo-app-staging-dani'
         S3_BUCKET = 'aws-sam-cli-managed-default-samclisourcebucket-3jhja3mam3li'
         USUARIO_GITHUB = 'DaniDiLara'
-        REPO = 'todo-list-aws.git'
+        REPO = 'todo-list-aws'
     }
 
     stages {
