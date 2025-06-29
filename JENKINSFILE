@@ -49,7 +49,11 @@ pipeline {
         }
 
         stage('Promote') {
-            withCredentials([usernamePassword(
+            when {
+        expression { currentBuild.result == null  currentBuild.result == 'SUCCESS' }
+    }
+    steps {
+        withCredentials([usernamePassword(
                 credentialsId: 'github-token',
                 usernameVariable: 'GIT_USER',
                 passwordVariable: 'GIT_TOKEN')]) {
@@ -61,8 +65,9 @@ pipeline {
                 git checkout master  git checkout -b master origin/master
                 git merge origin/develop
                 git push "$REMOTE_URL" master
-                '''
-            }
+            '''
         }
+    }
+}
     }
 }
