@@ -6,7 +6,7 @@ pipeline {
         STACK_NAME = 'todo-app-staging-dani'
         S3_BUCKET = 'aws-sam-cli-managed-default-samclisourcebucket-3jhja3mam3li'
         USUARIO_GITHUB = 'DaniDiLara'
-        REPO = 'todo-list-aws.git'
+        REPO = 'todo-list-aws'
     }
 
     stages {
@@ -42,26 +42,32 @@ pipeline {
         stage('Rest Test') {
             steps {
                 sh '''
-                    export API_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
+                    export BASE_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
                     python3 -m pytest test/integration/todoApiTest.py || exit 1
                 '''
             }
         }
 
         stage('Promote') {
-            withCredentials([usernamePassword(
-                credentialsId: 'github-token',
-                usernameVariable: 'GIT_USER',
-                passwordVariable: 'GIT_TOKEN')]) {
+            when {
+                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+                }
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-token',
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_TOKEN')]) {
 
-            sh '''
+                sh '''
 
-                REMOTE_URL="https://github.com/$USUARIO_GITHUB/$REPO"
-                git fetch "$REMOTE_URL"
-                git checkout master  git checkout -b master origin/master
-                git merge origin/develop
-                git push "$REMOTE_URL" master
+                    REMOTE_URL="https://${GIT_USER}:${GIT_TOKEN}@github.com/$USUARIO_GITHUB/$REPO"
+
+                    git fetch "$REMOTE_URL"
+                    git checkout master || git checkout -b master origin/master
+                    git merge origin/develop
+                    git push "$REMOTE_URL" master
                 '''
+                }
             }
         }
     }
