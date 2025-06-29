@@ -62,7 +62,7 @@ pipeline {
 
                     REMOTE_URL="https://github.com/$USUARIO_GITHUB/$REPO"
                     git fetch "$REMOTE_URL"
-                    git checkout master  git checkout -b master origin/master
+                    git checkout master || git checkout -b master origin/master
                     git merge origin/develop
                     git push "$REMOTE_URL" master
                 '''
