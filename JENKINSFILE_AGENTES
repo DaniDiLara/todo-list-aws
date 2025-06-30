@@ -52,6 +52,18 @@ pipeline {
                     sam build
                     sam deploy --stack-name $STACK_NAME --s3-bucket $S3_BUCKET --region $AWS_REGION --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset --parameter-overrides Stage=staging
                 '''
+                script {
+                    env.BASE_URL = sh(
+                        script: """
+                            aws cloudformation describe-stacks \
+                              --stack-name ${STACK_NAME} \
+                              --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" \
+                              --region ${AWS_REGION} --output text
+                        """,
+                        returnStdout: true
+                    ).trim()
+                    echo "Base URL obtenida: ${env.BASE_URL}"
+                }
                 stash name: 'fuente', includes: '**/*'
             }
         }
