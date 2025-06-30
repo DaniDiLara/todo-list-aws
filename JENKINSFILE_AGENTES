@@ -39,7 +39,7 @@ pipeline {
         }
 
         stage('Deploy') {
-            agent { label 'principal' }
+            agent { label 'dani' }
             steps {
                 sh '''
                     echo "Ejecutando en nodo: $(hostname)"
@@ -65,7 +65,7 @@ pipeline {
         }
 
         stage('Promote') {
-            agent { label 'principal' }
+            agent { label 'dani' }
             when {
                 expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
