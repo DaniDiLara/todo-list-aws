@@ -75,7 +75,7 @@ pipeline {
                 sh '''
                     echo "Ejecutando en nodo: $(hostname)"
                     echo "Usuario: $(whoami)"
-                    export BASE_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
+                    export BASE_URL
                     python3 -m pytest test/integration/todoApiTest.py || exit 1
                 '''
                 stash name: 'fuente', includes: '**/*'
