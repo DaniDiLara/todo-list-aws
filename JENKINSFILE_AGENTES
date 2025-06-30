@@ -14,8 +14,8 @@ pipeline {
             agent { label 'dani' }
             steps {
                 sh '''
-                $(hostname)"
-                $(whoami)"
+                    echo "Ejecutando en nodo: $(hostname)"
+                    echo "Usuario: $(whoami)"
                 '''
                 cleanWs()
                 git branch: 'develop', url: 'https://github.com/DaniDiLara/todo-list-aws.git'
@@ -26,8 +26,8 @@ pipeline {
             agent { label 'agente1' }
             steps {
                 sh '''
-                    $(hostname)"
-                    $(whoami)"
+                    echo "Ejecutando en nodo: $(hostname)"
+                    echo "Usuario: $(whoami)"
                     flake8 src > flake8-report.txt || true
                     bandit -r src -f custom -o bandit-report.out --msg-template "{abspath}:{line}: [{test_id}] {msg}" || true
                 '''
@@ -42,8 +42,8 @@ pipeline {
             agent { label 'principal' }
             steps {
                 sh '''
-                    $(hostname)"
-                    $(whoami)"
+                    echo "Ejecutando en nodo: $(hostname)"
+                    echo "Usuario: $(whoami)"
                     sam build
                     sam deploy --stack-name $STACK_NAME --s3-bucket $S3_BUCKET --region $AWS_REGION --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset --parameter-overrides Stage=staging
                 '''
@@ -56,8 +56,8 @@ pipeline {
             steps {
                 unstash 'api'
                 sh '''
-                    $(hostname)"
-                    $(whoami)"
+                    echo "Ejecutando en nodo: $(hostname)"
+                    echo "Usuario: $(whoami)"
                     export BASE_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
                     python3 -m pytest test/integration/todoApiTest.py || exit 1
                 '''
@@ -68,24 +68,23 @@ pipeline {
             agent { label 'principal' }
             when {
                 expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
-                }
+            }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'github-token',
                     usernameVariable: 'GIT_USER',
                     passwordVariable: 'GIT_TOKEN')]) {
+                    sh '''
+                        echo "Ejecutando en nodo: $(hostname)"
+                        echo "Usuario: $(whoami)"
 
-                sh '''
-                    $(hostname)"
-                    $(whoami)"
+                        REMOTE_URL="https://${GIT_USER}:${GIT_TOKEN}@github.com/$USUARIO_GITHUB/$REPO"
 
-                    REMOTE_URL="https://${GIT_USER}:${GIT_TOKEN}@github.com/$USUARIO_GITHUB/$REPO"
-
-                    git fetch "$REMOTE_URL"
-                    git checkout master || git checkout -b master origin/master
-                    git merge origin/develop
-                    git push "$REMOTE_URL" master
-                '''
+                        git fetch "$REMOTE_URL"
+                        git checkout master || git checkout -b master origin/master
+                        git merge origin/develop
+                        git push "$REMOTE_URL" master
+                    '''
                 }
             }
         }
