@@ -13,18 +13,22 @@ pipeline {
         stage('Get Code') {
             agent { label 'dani' }
             steps {
+                unstash 'fuente'
                 sh '''
                     echo "Ejecutando en nodo: $(hostname)"
                     echo "Usuario: $(whoami)"
                 '''
                 cleanWs()
                 git branch: 'develop', url: 'https://github.com/DaniDiLara/todo-list-aws.git'
+
+                stash name: 'fuente', includes: '**/*'
             }
         }
 
         stage('Static Test') {
             agent { label 'agente1' }
             steps {
+                unstash 'fuente'
                 sh '''
                     echo "Ejecutando en nodo: $(hostname)"
                     echo "Usuario: $(whoami)"
@@ -35,12 +39,14 @@ pipeline {
                     flake8(pattern: 'flake8-report.txt'),
                     pyLint(name: 'Bandit', pattern: 'bandit-report.out')
                 ]
+                stash name: 'fuente', includes: '**/*'
             }
         }
 
         stage('Deploy') {
             agent { label 'dani' }
             steps {
+                unstash 'fuente'
                 sh '''
                     echo "Ejecutando en nodo: $(hostname)"
                     echo "Usuario: $(whoami)"
@@ -61,6 +67,7 @@ pipeline {
                     export BASE_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
                     python3 -m pytest test/integration/todoApiTest.py || exit 1
                 '''
+                stash name: 'fuente', includes: '**/*'
             }
         }
 
