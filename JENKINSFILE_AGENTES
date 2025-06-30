@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent none
 
     environment {
         AWS_REGION = 'us-east-1'
@@ -11,15 +11,21 @@ pipeline {
 
     stages {
         stage('Get Code') {
+            agent { label 'principal' }
             steps {
+                echo "Ejecutando en nodo: $(hostname)"
+                echo "Usuario: $(whoami)"
                 cleanWs()
                 git branch: 'develop', url: 'https://github.com/DaniDiLara/todo-list-aws.git'
             }
         }
 
         stage('Static Test') {
+            agent { label 'agente1' }
             steps {
                 sh '''
+                    echo "Ejecutando en nodo: $(hostname)"
+                    echo "Usuario: $(whoami)"
                     flake8 src > flake8-report.txt || true
                     bandit -r src -f custom -o bandit-report.out --msg-template "{abspath}:{line}: [{test_id}] {msg}" || true
                 '''
@@ -31,17 +37,25 @@ pipeline {
         }
 
         stage('Deploy') {
+            agent { label 'principal' }
             steps {
                 sh '''
+                    echo "Ejecutando en nodo: $(hostname)"
+                    echo "Usuario: $(whoami)"
                     sam build
                     sam deploy --stack-name $STACK_NAME --s3-bucket $S3_BUCKET --region $AWS_REGION --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset --parameter-overrides Stage=staging
                 '''
+                stash includes: 'base_url.txt', name: 'api'
             }
         }
 
         stage('Rest Test') {
+            agent { label 'agente2' }
             steps {
+                unstash 'api'
                 sh '''
+                    echo "Ejecutando en nodo: $(hostname)"
+                    echo "Usuario: $(whoami)"
                     export BASE_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
                     python3 -m pytest test/integration/todoApiTest.py || exit 1
                 '''
@@ -49,6 +63,7 @@ pipeline {
         }
 
         stage('Promote') {
+            agent { label 'principal' }
             when {
                 expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
                 }
@@ -59,6 +74,8 @@ pipeline {
                     passwordVariable: 'GIT_TOKEN')]) {
 
                 sh '''
+                    echo "Ejecutando en nodo: $(hostname)"
+                    echo "Usuario: $(whoami)"
 
                     REMOTE_URL="https://${GIT_USER}:${GIT_TOKEN}@github.com/$USUARIO_GITHUB/$REPO"
 
