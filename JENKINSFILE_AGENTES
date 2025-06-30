@@ -13,7 +13,6 @@ pipeline {
         stage('Get Code') {
             agent { label 'dani' }
             steps {
-                unstash 'fuente'
                 sh '''
                     echo "Ejecutando en nodo: $(hostname)"
                     echo "Usuario: $(whoami)"
