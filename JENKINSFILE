@@ -14,6 +14,11 @@ pipeline {
             steps {
                 cleanWs()
                 git branch: 'develop', url: 'https://github.com/DaniDiLara/todo-list-aws.git'
+
+                sh '''
+                    git clone --single-branch --branch staging https://github.com/${USUARIO_GITHUB}/${REPO_CONFIG}.git config-repo
+                    cp config-repo/samconfig.toml .
+                '''
             }
         }
 
