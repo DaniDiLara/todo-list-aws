@@ -1,41 +1,31 @@
 pipeline {
-    agent none           
+    agent none
 
     environment {
-        AWS_REGION   = 'us-east-1'
+        AWS_REGION = 'us-east-1'
         STACK_NAME = 'todo-app-staging-dani'
         S3_BUCKET = 'aws-sam-cli-managed-default-samclisourcebucket-3jhja3mam3li'
-        REPO = 'todo-list-aws.git'
         USUARIO_GITHUB = 'DaniDiLara'
-        CONFIG_REPO  = 'todo-list-aws-config'
+        REPO = 'todo-list-aws'
+        REPO_CONFIG = 'todo-list-aws-config'
     }
 
     stages {
-
         stage('Get Code') {
             agent { label 'dani' }
             steps {
-                sh 'whoami'
-                sh 'hostname'
+                sh '''
+                    echo "Ejecutando en nodo: $(hostname)"
+                    echo "Usuario: $(whoami)"
+                '''
                 cleanWs()
-                echo 'Descargando código desde la rama develop…'
-                git branch: 'develop',
-                    url: "https://github.com/DaniDiLara/todo-list-aws.git"
 
-                script {
-                    echo "Descargando samconfig.toml desde rama staging de repo ${CONFIG_REPO}"
-                    sh """
-                        git init config
-                        cd config
-                        git remote add origin https://github.com/DaniDiLara/todo-list-aws-config.git
-                        git config core.sparseCheckout true
-                        echo "samconfig.toml" > .git/info/sparse-checkout
-                        git pull origin staging
-                        cd ..
-                        mv config/samconfig.toml ./samconfig.toml
-                        rm -rf config
-                    """
-                }
+                git branch: 'develop', url: "https://github.com/${USUARIO_GITHUB}/${REPO}.git"
+
+                sh '''
+                    git clone --single-branch --branch staging https://github.com/${USUARIO_GITHUB}/${REPO_CONFIG}.git config-repo
+                    cp config-repo/samconfig.toml .
+                '''
 
                 stash name: 'fuente', includes: '**/*'
             }
@@ -44,11 +34,10 @@ pipeline {
         stage('Static Test') {
             agent { label 'agente1' }
             steps {
-                sh 'whoami'
-                sh 'hostname'
-                cleanWs()
                 unstash 'fuente'
                 sh '''
+                    echo "Ejecutando en nodo: $(hostname)"
+                    echo "Usuario: $(whoami)"
                     flake8 src > flake8-report.txt || true
                     bandit -r src -f custom -o bandit-report.out --msg-template "{abspath}:{line}: [{test_id}] {msg}" || true
                 '''
@@ -63,13 +52,12 @@ pipeline {
         stage('Deploy') {
             agent { label 'dani' }
             steps {
-                sh 'whoami'
-                sh 'hostname'
-                cleanWs()
                 unstash 'fuente'
                 sh '''
+                    echo "Ejecutando en nodo: $(hostname)"
+                    echo "Usuario: $(whoami)"
                     sam build
-                    sam deploy --config-file samconfig.toml --config-env staging --no-fail-on-empty-changeset
+                    sam deploy --no-fail-on-empty-changeset
                 '''
                 script {
                     env.BASE_URL = sh(
@@ -90,36 +78,34 @@ pipeline {
         stage('Rest Test') {
             agent { label 'agente2' }
             steps {
-                sh 'whoami'
-                sh 'hostname'
-                cleanWs()
                 unstash 'fuente'
                 sh '''
-                    echo "Usando BASE_URL=$BASE_URL"
+                    echo "Ejecutando en nodo: $(hostname)"
+                    echo "Usuario: $(whoami)"
                     export BASE_URL
-                    sleep 10
-                    python3 -m pytest test/integration/todoApiTest.py
+                    python3 -m pytest test/integration/todoApiTest.py || exit 1
                 '''
+                stash name: 'fuente', includes: '**/*'
             }
         }
 
         stage('Promote') {
-            when { expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' } }
             agent { label 'dani' }
+            when {
+                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+            }
             steps {
-                sh 'whoami'
-                sh 'hostname'
-                cleanWs()  // Limpiar workspace antes de empezar
-                // Clonar repo limpio
-                git branch: 'develop',
-                    url: "https://github.com/${USUARIO_GITHUB}/${REPO}"
-
                 withCredentials([usernamePassword(
                     credentialsId: 'github-token',
                     usernameVariable: 'GIT_USER',
                     passwordVariable: 'GIT_TOKEN')]) {
                     sh '''
-                        REMOTE_URL="https://${GIT_USER}:${GIT_TOKEN}@github.com/${USUARIO_GITHUB}/${REPO}"
+                        echo "Ejecutando en nodo: $(hostname)"
+                        echo "Usuario: $(whoami)"
+
+                        REMOTE_URL="https://${GIT_USER}:${GIT_TOKEN}@github.com/$USUARIO_GITHUB/$REPO"
+
+                        git fetch "$REMOTE_URL"
                         git checkout master || git checkout -b master origin/master
                         git merge origin/develop
                         git push "$REMOTE_URL" master
