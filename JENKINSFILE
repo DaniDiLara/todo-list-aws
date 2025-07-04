@@ -7,6 +7,8 @@ pipeline {
         S3_BUCKET = 'aws-sam-cli-managed-default-samclisourcebucket-3jhja3mam3li'
         USUARIO_GITHUB = 'DaniDiLara'
         REPO = 'todo-list-aws'
+        CONFIG_REPO = 'todo-list-aws-config'
+
     }
 
     stages {
