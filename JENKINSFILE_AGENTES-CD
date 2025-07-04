@@ -18,7 +18,7 @@ pipeline {
                     echo "Usuario: $(whoami)"
                 '''
                 cleanWs()
-                git branch: 'develop', url: 'https://github.com/DaniDiLara/todo-list-aws.git'
+                git branch: 'master', url: 'https://github.com/DaniDiLara/todo-list-aws.git'
 
                 stash name: 'fuente', includes: '**/*'
             }
