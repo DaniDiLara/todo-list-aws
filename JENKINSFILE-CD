@@ -13,7 +13,7 @@ pipeline {
         stage('Get Code') {
             steps {
                 cleanWs()
-                git branch: 'develop', url: 'https://github.com/DaniDiLara/todo-list-aws.git'
+                git branch: 'master', url: 'https://github.com/DaniDiLara/todo-list-aws.git'
             }
         }
 
