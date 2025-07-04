@@ -24,6 +24,8 @@ pipeline {
                     git clone --single-branch --branch staging https://github.com/${USUARIO_GITHUB}/${REPO_CONFIG}.git config-repo
                     cp config-repo/samconfig.toml .
                 '''
+
+                stash name: 'fuente', includes: '**/*'
             }
         }
 
